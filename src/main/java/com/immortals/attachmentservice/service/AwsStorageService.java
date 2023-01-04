@@ -11,7 +11,9 @@ public interface AwsStorageService{
 
     Boolean checkIfBucketExistsOrNot( String bucketName );
 
-    String createBucket( S3Client s3Client,String bucketName );
+    String createBucket( S3Client s3Client,String bucketName,Boolean isSetCorsBucket,
+                         List< String > allowOrigins,
+                         List< String > allowMethods );
 
     List< Bucket > listBuckets( S3Client s3Client );
 

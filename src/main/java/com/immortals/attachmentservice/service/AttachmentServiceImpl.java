@@ -42,21 +42,4 @@ public class AttachmentServiceImpl implements AttachmentService{
         }
     }
 
-    public void deleteFile(){
-
-    }
-
-    public void updateFile(){
-
-    }
-
-    public void downloadFile(){
-
-    }
-
-    public void deleteS3Container(){
-
-    }
-
-
 }

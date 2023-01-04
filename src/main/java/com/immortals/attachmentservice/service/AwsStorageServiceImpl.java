@@ -2,8 +2,10 @@ package com.immortals.attachmentservice.service;
 
 import com.amazonaws.s3.model.NoSuchBucketException;
 import com.immortals.attachmentservice.config.AwsConfig;
+import com.immortals.attachmentservice.model.enums.BucketProperties;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.sync.RequestBody;
@@ -14,6 +16,7 @@ import software.amazon.awssdk.services.s3.waiters.S3Waiter;
 
 import java.nio.ByteBuffer;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 @Slf4j
@@ -23,8 +26,17 @@ public class AwsStorageServiceImpl implements AwsStorageService{
 
     private final AwsConfig awsConfig;
 
+    private final CorsRulesOps corsRulesOps;
+
+    @Value ("${aws.account.id}")
+    private String accountId;
+
     @Autowired
-    public AwsStorageServiceImpl( AwsConfig config ){awsConfig=config;}
+    public AwsStorageServiceImpl( AwsConfig config,CorsRulesOps ops ){
+        awsConfig=config;
+        corsRulesOps=ops;
+    }
+
 
     private static ByteBuffer getRandomByteBuffer( int size ){
         byte[] b=new byte[size];
@@ -57,6 +69,7 @@ public class AwsStorageServiceImpl implements AwsStorageService{
         }
     }
 
+
     /**
      * Creates A bucket with default configuration
      *
@@ -66,7 +79,9 @@ public class AwsStorageServiceImpl implements AwsStorageService{
      * @return
      */
     @Override
-    public String createBucket( S3Client s3Client,String bucketName ){
+    public String createBucket( S3Client s3Client,String bucketName,Map< String,Boolean > bucketProperties,
+                                List< String > allowOrigins,
+                                List< String > allowMethods ){
         try {
 
             S3Waiter s3Waiter=s3Client.waiter( );
@@ -80,6 +95,9 @@ public class AwsStorageServiceImpl implements AwsStorageService{
             waiterResponse.matched( ).response( ).ifPresent( bucketResponse->log.info( "Bucket with Name : "+bucketResponse+" is ready" ) );
             log.info( bucketName+" is ready" );
 
+            if ( bucketProperties.get( BucketProperties.SET_CORS_RULE ) ) {
+                corsRulesOps.setCorsInformation( s3Client,bucketName,accountId,allowOrigins,allowMethods );
+            }
 
         }catch ( S3Exception e ) {
             log.error( e.awsErrorDetails( ).errorMessage( ) );
