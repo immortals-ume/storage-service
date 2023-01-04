@@ -95,8 +95,11 @@ public class AwsStorageServiceImpl implements AwsStorageService{
             waiterResponse.matched( ).response( ).ifPresent( bucketResponse->log.info( "Bucket with Name : "+bucketResponse+" is ready" ) );
             log.info( bucketName+" is ready" );
 
-            if ( bucketProperties.get( BucketProperties.SET_CORS_RULE ) ) {
+            if ( bucketProperties.get( BucketProperties.SET_CORS_RULE.name( ) ) ) {
                 corsRulesOps.setCorsInformation( s3Client,bucketName,accountId,allowOrigins,allowMethods );
+            }
+            if ( bucketProperties.get( BucketProperties.SET_LIFECYCLE.name( ) ) ) {
+
             }
 
         }catch ( S3Exception e ) {

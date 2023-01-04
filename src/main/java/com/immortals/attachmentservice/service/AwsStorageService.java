@@ -5,13 +5,14 @@ import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.Bucket;
 
 import java.util.List;
+import java.util.Map;
 
 public interface AwsStorageService{
 
 
     Boolean checkIfBucketExistsOrNot( String bucketName );
 
-    String createBucket( S3Client s3Client,String bucketName,Boolean isSetCorsBucket,
+    String createBucket( S3Client s3Client,String bucketName,Map< String,Boolean > bucketProperties,
                          List< String > allowOrigins,
                          List< String > allowMethods );
 
