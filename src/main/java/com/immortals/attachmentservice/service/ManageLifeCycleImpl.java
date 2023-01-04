@@ -5,11 +5,12 @@ import org.springframework.stereotype.Component;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.*;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Component
 @Slf4j
-public class ManageLifeCycleImpl{
+public class ManageLifeCycleImpl implements ManageLifeCycle{
 
 
     private static BucketLifecycleConfiguration getBuild( List< LifecycleRule > lifecycleRules ){
@@ -18,6 +19,7 @@ public class ManageLifeCycleImpl{
                 .build( );
     }
 
+    @Override
     public PutBucketLifecycleConfigurationResponse setBucketLifeCycle( S3Client s3Client,String bucketName,
                                                                        String accountId,
                                                                        List< LifecycleRule > lifecycleRules ){
@@ -41,7 +43,38 @@ public class ManageLifeCycleImpl{
         return putBucketLifecycleConfigurationResponse;
     }
 
-    public void getBucketLifeCycle( S3Client s3Client,String bucketName,String accountId ){
+    @Override
+    public List< LifecycleRule > getBucketLifeCycle( S3Client s3Client,String bucketName,String accountId ){
+        List< LifecycleRule > lifecycleRules=new ArrayList<>( );
+        try {
+            GetBucketLifecycleConfigurationRequest getBucketLifecycleConfigurationRequest=
+                    GetBucketLifecycleConfigurationRequest.builder( )
+                            .bucket( bucketName )
+                            .expectedBucketOwner( accountId )
+                            .build( );
 
+            lifecycleRules=s3Client.getBucketLifecycleConfiguration( getBucketLifecycleConfigurationRequest ).rules( );
+
+        }catch ( S3Exception e ) {
+            log.error( e.awsErrorDetails( ).errorMessage( ) );
+        }
+        return lifecycleRules;
+    }
+
+    @Override
+    public DeleteBucketLifecycleResponse deleteBucketLifeCycle( S3Client s3Client,String bucketName,String accountId ){
+        DeleteBucketLifecycleResponse deleteBucketLifecycleResponse=null;
+        try {
+            DeleteBucketLifecycleRequest deleteBucketLifecycleRequest=DeleteBucketLifecycleRequest.builder( )
+                    .bucket( bucketName )
+                    .expectedBucketOwner( accountId )
+                    .build( );
+
+            deleteBucketLifecycleResponse=s3Client.deleteBucketLifecycle( deleteBucketLifecycleRequest );
+
+        }catch ( S3Exception e ) {
+            log.error( e.awsErrorDetails( ).errorMessage( ) );
+        }
+        return deleteBucketLifecycleResponse;
     }
 }

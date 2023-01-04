@@ -10,6 +10,7 @@ Concepts Of AWS S3:
 
     Objects: These are files that have a key and this key is the full path. For example s3://my-bucket/my-file.txt
     The maximum size of an object is 5TB and if the upload is larger than 5GB the multipart upload must be used.
+
     
     Versioning: Enabled at the bucket level. The same key overwrites and increments the version: 1, 2, 3… It’s the best
     practice to version your files.

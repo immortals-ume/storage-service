@@ -1,19 +1,21 @@
 package com.immortals.attachmentservice.service;
 
-import com.amazonaws.s3.model.NoSuchBucketException;
-import com.immortals.attachmentservice.config.AwsConfig;
-import com.immortals.attachmentservice.model.enums.BucketProperties;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import org.springframework.web.multipart.MultipartFile;
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.core.waiters.WaiterResponse;
+import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.*;
 import software.amazon.awssdk.services.s3.waiters.S3Waiter;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
@@ -24,19 +26,24 @@ import java.util.Random;
 public class AwsStorageServiceImpl implements AwsStorageService{
 
 
-    private final AwsConfig awsConfig;
-
     private final CorsRulesOps corsRulesOps;
+
+    private final ManageLifeCycle manageLifeCycle;
 
     @Value ("${aws.account.id}")
     private String accountId;
 
-    @Autowired
-    public AwsStorageServiceImpl( AwsConfig config,CorsRulesOps ops ){
-        awsConfig=config;
-        corsRulesOps=ops;
-    }
+    @Value ("${aws.access.key}")
+    private String accessKey;
 
+    @Value ("${aws.secret.key}")
+    private String secretKey;
+
+    @Autowired
+    public AwsStorageServiceImpl( CorsRulesOps ops,ManageLifeCycle cycle ){
+        corsRulesOps=ops;
+        manageLifeCycle=cycle;
+    }
 
     private static ByteBuffer getRandomByteBuffer( int size ){
         byte[] b=new byte[size];
@@ -44,6 +51,17 @@ public class AwsStorageServiceImpl implements AwsStorageService{
         return ByteBuffer.wrap( b );
     }
 
+    private AwsBasicCredentials credentials(){
+        return AwsBasicCredentials.create( accessKey,secretKey );
+
+    }
+
+    @Override
+    public S3Client createClient(){
+        Region region=Region.AP_SOUTH_1;
+        return S3Client.builder( ).region( region ).credentialsProvider( StaticCredentialsProvider.create( credentials( ) ) ).build( );
+
+    }
 
     /**
      * checks if bucket already exists in the s3 storage or not
@@ -53,20 +71,23 @@ public class AwsStorageServiceImpl implements AwsStorageService{
      * @return
      */
     @Override
-    public Boolean checkIfBucketExistsOrNot( String bucketName ){
-
+    public boolean checkIfBucketExistsOrNot( String bucketName ){
+        S3Client s3Client=createClient( );
+        boolean isExists;
         try {
             HeadBucketRequest headBucketRequest=HeadBucketRequest.builder( ).bucket( bucketName ).build( );
-            awsConfig.createClient( ).headBucket( headBucketRequest );
+            s3Client.headBucket( headBucketRequest );
             WaiterResponse< HeadBucketResponse > waiterResponse=
-                    awsConfig.createClient( ).waiter( ).waitUntilBucketExists( headBucketRequest );
-            waiterResponse.matched( ).response( ).ifPresent( bucketResponse->log.info( "Bucket with Name : "+bucketResponse+" already exists" ) );
-
-            return Boolean.TRUE;
+                    s3Client.waiter( ).waitUntilBucketExists( headBucketRequest );
+            waiterResponse.matched( ).response( );
+            isExists=Boolean.TRUE;
         }catch ( NoSuchBucketException e ) {
-            log.error( e.getMessage( ) );
-            return Boolean.FALSE;
+            isExists=Boolean.FALSE;
+            log.error( e.awsErrorDetails( ).errorMessage( ) );
+        }finally {
+            s3Client.close( );
         }
+        return isExists;
     }
 
 
@@ -79,9 +100,8 @@ public class AwsStorageServiceImpl implements AwsStorageService{
      * @return
      */
     @Override
-    public String createBucket( S3Client s3Client,String bucketName,Map< String,Boolean > bucketProperties,
-                                List< String > allowOrigins,
-                                List< String > allowMethods ){
+    public String createBucket( S3Client s3Client,String bucketName ){
+
         try {
 
             S3Waiter s3Waiter=s3Client.waiter( );
@@ -94,18 +114,16 @@ public class AwsStorageServiceImpl implements AwsStorageService{
             WaiterResponse< HeadBucketResponse > waiterResponse=s3Waiter.waitUntilBucketExists( bucketRequestWait );
             waiterResponse.matched( ).response( ).ifPresent( bucketResponse->log.info( "Bucket with Name : "+bucketResponse+" is ready" ) );
             log.info( bucketName+" is ready" );
-
-            if ( bucketProperties.get( BucketProperties.SET_CORS_RULE.name( ) ) ) {
-                corsRulesOps.setCorsInformation( s3Client,bucketName,accountId,allowOrigins,allowMethods );
-            }
-            if ( bucketProperties.get( BucketProperties.SET_LIFECYCLE.name( ) ) ) {
-
-            }
-
         }catch ( S3Exception e ) {
             log.error( e.awsErrorDetails( ).errorMessage( ) );
         }
-        return bucketName;
+        return "New Bucket with : "+bucketName+"created";
+    }
+
+    @Override
+    public void setBucketProperties( Map< String,Boolean > bucketProperties,List< String > allowOrigins,
+                                     List< String > allowMethods,List< LifecycleRule > lifecycleRules ){
+        //TODO : customizable implementation of set props for the bucket
     }
 
     /**
@@ -122,55 +140,27 @@ public class AwsStorageServiceImpl implements AwsStorageService{
 
 
     // --------------------------------------- Operations Performed On the Bucket ----------------------------------//
+
     @Override
-    public void uploadMultipart( MultipartFile file,String bucketName,String key ){
-        try {
-            CreateMultipartUploadRequest createMultipartUploadRequest=CreateMultipartUploadRequest.builder( )
+    public PutObjectResponse uploadFile( S3Client s3Client,String bucketName,String key,
+                                         Map< String,String > metadata,String filePath ){
+        checkIfBucketExistsOrNot( bucketName );
+        PutObjectResponse putObjectResponse=null;
+        try ( FileInputStream fileInputStream=new FileInputStream( new File( filePath ) ) ) {
+            PutObjectRequest putOb=PutObjectRequest.builder( )
                     .bucket( bucketName )
                     .key( key )
+                    .metadata( metadata )
                     .build( );
 
-            CreateMultipartUploadResponse response=
-                    awsConfig.createClient( ).createMultipartUpload( createMultipartUploadRequest );
+            putObjectResponse=s3Client.putObject( putOb,
+                    RequestBody.fromInputStream( fileInputStream,
+                            new File( filePath ).length( ) ) );
 
-            log.info( response.uploadId( ) );
-
-
-            UploadPartRequest uploadPartRequest1=UploadPartRequest.builder( )
-                    .bucket( bucketName )
-                    .key( key )
-                    .uploadId( response.uploadId( ) )
-                    .partNumber( 1 ).build( );
-
-            int maxSize=1024*1024;
-            String etag1=awsConfig.createClient( ).uploadPart( uploadPartRequest1,
-                    RequestBody.fromByteBuffer( getRandomByteBuffer( 5*maxSize ) ) ).eTag( );
-
-            CompletedPart part1=CompletedPart.builder( ).partNumber( 1 ).eTag( etag1 ).build( );
-
-            UploadPartRequest uploadPartRequest2=UploadPartRequest.builder( ).bucket( bucketName ).key( key )
-                    .uploadId( response.uploadId( ) )
-                    .partNumber( 2 ).build( );
-            String etag2=awsConfig.createClient( ).uploadPart( uploadPartRequest2,
-                    RequestBody.fromByteBuffer( getRandomByteBuffer( 3*maxSize ) ) ).eTag( );
-            CompletedPart part2=CompletedPart.builder( ).partNumber( 2 ).eTag( etag2 ).build( );
-
-
-            CompletedMultipartUpload completedMultipartUpload=CompletedMultipartUpload.builder( )
-                    .parts( part1,part2 )
-                    .build( );
-
-            CompleteMultipartUploadRequest completeMultipartUploadRequest=
-                    CompleteMultipartUploadRequest.builder( )
-                            .bucket( bucketName )
-                            .key( key )
-                            .uploadId( response.uploadId( ) )
-                            .multipartUpload( completedMultipartUpload )
-                            .build( );
-
-            awsConfig.createClient( ).completeMultipartUpload( completeMultipartUploadRequest );
-        }catch ( S3Exception exception ) {
+        }catch ( S3Exception|IOException exception ) {
             log.error( exception.getMessage( ) );
         }
+        return putObjectResponse;
     }
+
 }

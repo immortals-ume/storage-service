@@ -1,8 +1,9 @@
 package com.immortals.attachmentservice.service;
 
-import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.Bucket;
+import software.amazon.awssdk.services.s3.model.LifecycleRule;
+import software.amazon.awssdk.services.s3.model.PutObjectResponse;
 
 import java.util.List;
 import java.util.Map;
@@ -10,16 +11,21 @@ import java.util.Map;
 public interface AwsStorageService{
 
 
-    Boolean checkIfBucketExistsOrNot( String bucketName );
+    S3Client createClient();
 
-    String createBucket( S3Client s3Client,String bucketName,Map< String,Boolean > bucketProperties,
-                         List< String > allowOrigins,
-                         List< String > allowMethods );
+    boolean checkIfBucketExistsOrNot( String bucketName );
+
+    String createBucket( S3Client s3Client,String bucketName );
+
+    void setBucketProperties( Map< String,Boolean > bucketProperties,
+                              List< String > allowOrigins,
+                              List< String > allowMethods,List< LifecycleRule > lifecycleRules );
 
     List< Bucket > listBuckets( S3Client s3Client );
 
+    // --------------------------------------- Operations Performed On the Bucket ----------------------------------//
 
-    void uploadMultipart( MultipartFile file,String bucketName,String key );
-
+    PutObjectResponse uploadFile( S3Client s3Client,String bucketName,String key,
+                                  Map< String,String > metadata,String filePath );
 
 }

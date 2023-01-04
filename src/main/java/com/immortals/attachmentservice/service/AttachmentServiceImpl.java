@@ -1,12 +1,16 @@
 package com.immortals.attachmentservice.service;
 
 
-import com.immortals.attachmentservice.config.AwsConfig;
+import com.immortals.attachmentservice.mapper.BucketMapper;
+import com.immortals.attachmentservice.model.payload.BucketPayload;
+import com.immortals.attachmentservice.model.payload.FilePayload;
 import com.immortals.attachmentservice.repository.AttachmentRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
+import software.amazon.awssdk.services.s3.model.Bucket;
+
+import java.util.*;
 
 @Slf4j
 @Service
@@ -17,29 +21,52 @@ public class AttachmentServiceImpl implements AttachmentService{
 
     private final AwsStorageService awsStorageService;
 
-    private final AwsConfig awsConfig;
+    private final BucketMapper bucketMapper;
 
     @Autowired
-    public AttachmentServiceImpl( AttachmentRepository repository,AwsStorageService service,AwsConfig config ){
+    public AttachmentServiceImpl( AttachmentRepository repository,AwsStorageService service,BucketMapper mapper ){
         attachmentRepository=repository;
         awsStorageService=service;
-        awsConfig=config;
+        bucketMapper=mapper;
     }
 
     @Override
     public String createBucket( String bucketName ){
-        if ( awsStorageService.checkIfBucketExistsOrNot( bucketName ) ) {
-            log.info( bucketName+"exists" );
+        if ( Boolean.TRUE.equals( awsStorageService.checkIfBucketExistsOrNot( bucketName ) ) ) {
+            return "Bucket Already Exists : "+bucketName;
         }
-        return awsStorageService.createBucket( awsConfig.createClient( ),bucketName );
+        return awsStorageService.createBucket( awsStorageService.createClient( ),bucketName );
     }
 
     @Override
-    public void uploadFile( Long userId,MultipartFile file,String bucketName ){
-        String bucketCreated=createBucket( bucketName );
-        if ( bucketCreated!=null ) {
-            awsStorageService.uploadMultipart( file,bucketName,"multipartUpload" );
+    public List< BucketPayload > listOfBucketsInS3(){
+        List< BucketPayload > bucketPayloads=new ArrayList<>( );
+        for ( Bucket bucket: awsStorageService.listBuckets( awsStorageService.createClient( ) ) ) {
+            BucketPayload bucketPayload=new BucketPayload( );
+            bucketPayload.setCreationDate( bucket.creationDate( ) );
+            bucketPayload.setName( bucket.name( ) );
+            bucketPayloads.add( bucketPayload );
         }
+        return bucketPayloads;
+    }
+
+    // --------------------------------------- Operations Performed On the Bucket ----------------------------------//
+
+    @Override
+    public String upload( FilePayload filePayload ){
+        return awsStorageService.uploadFile( awsStorageService.createClient( ),filePayload.getBucketName( ),
+                filePayload.getKey( ),createMetaData( filePayload.getUserMetaData( ) ),filePayload.getFilePath( ) ).eTag( );
+    }
+
+    /**
+     * key should be handled for appending the syntax needs to be updated
+     */
+    private Map< String,String > createMetaData( String data ){
+        Map< String,String > metadata=new HashMap<>( );
+        if ( Optional.ofNullable( data ).isPresent( ) ) {
+            metadata.put( "x-amz-meta-"+"data",data );
+        }
+        return metadata;
     }
 
 }
