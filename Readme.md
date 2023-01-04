@@ -1,8 +1,4 @@
-# Attachment Service
-
-Implementation is used for loading files to s3 storage using AWS sdk and storing the relevant metadata for the same in
-the
-database tables for further auditing / displaying list of files on the UI for the specific user.
+# Attachment Service using AWS S3
 
 # Summary of Amazon s3
 
