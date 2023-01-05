@@ -1,4 +1,4 @@
-# Attachment Service using AWS S3
+# Storage Service using AWS S3 
 
 # Summary of Amazon s3
 
