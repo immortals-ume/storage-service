@@ -1,4 +1,4 @@
-package com.immortals.attachmentservice.service;
+package com.immortals.attachmentservice.service.aws;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;

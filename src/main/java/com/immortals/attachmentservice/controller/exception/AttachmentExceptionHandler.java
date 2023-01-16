@@ -1,6 +1,6 @@
 package com.immortals.attachmentservice.controller.exception;
 
-import com.immortals.attachmentservice.controller.AttachmentController;
+import com.immortals.attachmentservice.controller.aws.S3Controller;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
@@ -14,8 +14,8 @@ import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.multipart.support.MissingServletRequestPartException;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
-@Order (Ordered.HIGHEST_PRECEDENCE)
-@ControllerAdvice (basePackageClasses = { AttachmentController.class })
+@Order(Ordered.HIGHEST_PRECEDENCE)
+@ControllerAdvice(basePackageClasses = {S3Controller.class})
 @Slf4j
 public class AttachmentExceptionHandler extends ResponseEntityExceptionHandler{
 

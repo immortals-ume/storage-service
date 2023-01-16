@@ -1,4 +1,4 @@
-package com.immortals.attachmentservice.model.payload;
+package com.immortals.attachmentservice.model.payload.aws;
 
 import lombok.Getter;
 import lombok.Setter;

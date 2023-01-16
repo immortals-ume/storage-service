@@ -1,6 +1,6 @@
-package com.immortals.attachmentservice.service;
+package com.immortals.attachmentservice.service.aws;
 
-import com.immortals.attachmentservice.model.payload.FilePayload;
+import com.immortals.attachmentservice.model.payload.aws.FilePayload;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -26,26 +26,26 @@ import java.util.Random;
 
 @Slf4j
 @Component
-public class AwsStorageServiceImpl implements AwsStorageService{
+public class AwsStorageCoreServiceImpl implements AwsStorageCoreService {
 
 
     private final CorsRulesOps corsRulesOps;
 
     private final ManageLifeCycle manageLifeCycle;
 
-    @Value ("${aws.account.id}")
+    @Value("${aws.account.id}")
     private String accountId;
 
-    @Value ("${aws.access.key}")
+    @Value("${aws.access.key}")
     private String accessKey;
 
     @Value ("${aws.secret.key}")
     private String secretKey;
 
     @Autowired
-    public AwsStorageServiceImpl( CorsRulesOps ops,ManageLifeCycle cycle ){
-        corsRulesOps=ops;
-        manageLifeCycle=cycle;
+    public AwsStorageCoreServiceImpl(CorsRulesOps ops, ManageLifeCycle cycle) {
+        corsRulesOps = ops;
+        manageLifeCycle = cycle;
     }
 
     private static ByteBuffer getRandomByteBuffer( int size ){

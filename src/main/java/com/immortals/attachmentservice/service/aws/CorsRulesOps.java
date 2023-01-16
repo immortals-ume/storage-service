@@ -1,4 +1,4 @@
-package com.immortals.attachmentservice.service;
+package com.immortals.attachmentservice.service.aws;
 
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.CORSRule;

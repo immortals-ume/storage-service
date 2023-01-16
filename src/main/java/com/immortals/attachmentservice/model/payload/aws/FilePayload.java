@@ -1,4 +1,4 @@
-package com.immortals.attachmentservice.model.payload;
+package com.immortals.attachmentservice.model.payload.aws;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotNull;

@@ -1,11 +1,10 @@
-package com.immortals.attachmentservice.controller;
+package com.immortals.attachmentservice.controller.aws;
 
-import com.immortals.attachmentservice.model.payload.BucketPayload;
-import com.immortals.attachmentservice.model.payload.FilePayload;
-import com.immortals.attachmentservice.model.payload.S3ObjectResponsePayload;
-import com.immortals.attachmentservice.service.AttachmentService;
+import com.immortals.attachmentservice.model.payload.aws.BucketPayload;
+import com.immortals.attachmentservice.model.payload.aws.FilePayload;
+import com.immortals.attachmentservice.model.payload.aws.S3ObjectResponsePayload;
+import com.immortals.attachmentservice.service.attachment.AttachmentService;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -20,36 +19,34 @@ import java.util.List;
  * s3 storage
  */
 @RestController
-@RequestMapping (value = "/api/v1/attachments")
-public class AttachmentController{
+@RequestMapping(value = "/api/v1/s3/")
+public class S3Controller {
 
 
     private final AttachmentService attachmentService;
 
 
     @Autowired
-    public AttachmentController( AttachmentService service ){
-        attachmentService=service;
+    public S3Controller(AttachmentService service) {
+        attachmentService = service;
     }
 
     /**
      * Lets Admin create a s3 bucket in AWS .
      *
      * @param bucketName name of bucket to be created
-     *
      * @return status of bucket creation .
-     *         <p>
-     *             <ul>
-     *               if already exists , then bucket already exists with provided name
-     *               if no bucket is found , creates the bucket
-     *             </ul>
-     *
-     *         </p>
+     * <p>
+     *     <ul>
+     *       if already exists , then bucket already exists with provided name
+     *       if no bucket is found , creates the bucket
+     *     </ul>
+     * </p>
      */
-    @PostMapping (value = "{bucketName}/create")
-    @ResponseStatus (HttpStatus.CREATED)
-    public String createdBucket(@Valid @PathVariable String bucketName ){
-        return attachmentService.createBucket( bucketName );
+    @PostMapping(value = "create/{bucketName}")
+    @ResponseStatus(HttpStatus.CREATED)
+    public String createdBucket(@Valid @PathVariable String bucketName) {
+        return attachmentService.createBucket(bucketName);
     }
 
 
@@ -59,10 +56,10 @@ public class AttachmentController{
      *
      * @return list of buckets for the specified account
      */
-    @GetMapping (value = "/buckets")
-    @ResponseStatus (HttpStatus.OK)
-    public List< BucketPayload > getListOfBuckets(){
-        return attachmentService.listOfBucketsInS3( );
+    @GetMapping(value = "/buckets")
+    @ResponseStatus(HttpStatus.OK)
+    public List<BucketPayload> getListOfBuckets() {
+        return attachmentService.listOfBucketsInS3();
     }
 
     /**
@@ -78,14 +75,13 @@ public class AttachmentController{
      *                    file Metadata :  user provided file MetaData ----------------- Optional
      *                    </o>
      *                    </p>
-     *
      * @return eTag of the File Uploaded .
      */
-    @PostMapping (value = "/upload", consumes = { MediaType.APPLICATION_JSON_VALUE },
-            produces = { MediaType.APPLICATION_JSON_VALUE })
-    @ResponseStatus (HttpStatus.CREATED)
-    public String uploadFileFromFileSystem( @RequestBody FilePayload filePayload ){
-        return attachmentService.upload( filePayload );
+    @PostMapping(value = "/upload", consumes = {MediaType.APPLICATION_JSON_VALUE},
+            produces = {MediaType.APPLICATION_JSON_VALUE})
+    @ResponseStatus(HttpStatus.CREATED)
+    public String uploadFileFromFileSystem(@RequestBody FilePayload filePayload) {
+        return attachmentService.upload(filePayload);
     }
 
     /**
@@ -102,29 +98,27 @@ public class AttachmentController{
      *                      file Metadata :  user provided file MetaData                   Optional
      *                      </o>
      *                      </p>
-     *
      * @return etag of the successful uploaded file
      */
 
-    @PostMapping (value = "/upload/multipart/", consumes = { MediaType.MULTIPART_FORM_DATA_VALUE,
-            MediaType.APPLICATION_JSON_VALUE },
-            produces = { MediaType.APPLICATION_JSON_VALUE })
-    @ResponseStatus (HttpStatus.CREATED)
-    public String uploadAsMultipartFile( @RequestPart MultipartFile multipartFile,
-                                         @RequestPart FilePayload filePayload ){
-        return attachmentService.uploadAsMultipartFile( multipartFile,filePayload );
+    @PostMapping(value = "/upload/multipart", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE,
+            MediaType.APPLICATION_JSON_VALUE},
+            produces = {MediaType.APPLICATION_JSON_VALUE})
+    @ResponseStatus(HttpStatus.CREATED)
+    public String uploadAsMultipartFile(@RequestPart MultipartFile multipartFile,
+                                        @RequestPart FilePayload filePayload) {
+        return attachmentService.uploadAsMultipartFile(multipartFile, filePayload);
     }
 
     /**
      * get the list of Objects in the bucket S3
      *
      * @param bucketName name of the bucket for which the list of objects to be found
-     *
      * @return list of objects in the bucket
      */
-    @GetMapping (value = "/{bucketName}")
-    @ResponseStatus (HttpStatus.OK)
-    public List< S3ObjectResponsePayload> getListOfFilesInBucket( @PathVariable String bucketName ){
-        return attachmentService.getListOfFiles( bucketName );
+    @GetMapping(value = "/{bucketName}")
+    @ResponseStatus(HttpStatus.OK)
+    public List<S3ObjectResponsePayload> getListOfFilesInBucket(@PathVariable String bucketName) {
+        return attachmentService.getListOfFiles(bucketName);
     }
 }
