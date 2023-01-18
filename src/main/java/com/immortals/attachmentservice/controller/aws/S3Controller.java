@@ -4,6 +4,7 @@ import com.immortals.attachmentservice.model.payload.aws.BucketPayload;
 import com.immortals.attachmentservice.model.payload.aws.FilePayload;
 import com.immortals.attachmentservice.model.payload.aws.S3ObjectResponsePayload;
 import com.immortals.attachmentservice.service.attachment.AttachmentService;
+import com.immortals.attachmentservice.service.aws.s3Service;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -23,7 +24,7 @@ import java.util.List;
 public class S3Controller {
 
 
-    private final AttachmentService attachmentService;
+    private final s3Service attachmentService;
 
 
     @Autowired
