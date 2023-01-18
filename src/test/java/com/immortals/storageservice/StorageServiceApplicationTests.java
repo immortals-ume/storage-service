@@ -1,14 +1,14 @@
-package com.immortals.attachmentservice;
+package com.immortals.storageservice;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class AttachementServiceApplicationTests{
+class StorageServiceApplicationTests {
 
 
     @Test
-    void contextLoads(){
+    void contextLoads() {
     }
 
 }
